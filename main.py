@@ -16,6 +16,7 @@ screen.colormode(255)
 screen.tracer(0)
 
 state = {"is_day": True, "game_started": False}
+current_stars = []
 
 bg_t = turtle.Turtle()
 ui_t = turtle.Turtle()
@@ -23,31 +24,28 @@ for t in [bg_t, ui_t]: t.hideturtle()
 
 
 def draw_pixel_circle(t, xc, yc, r, fill_color):
-    """Implementation of Midpoint Circle Algorithm for smooth rendering."""
     t.penup()
     t.color(fill_color)
-    # To fill a midpoint circle in Turtle, we draw horizontal lines between points
     x = 0
     y = r
     d = 1 - r
 
     def draw_lines(xc, yc, x, y):
-        # Draws horizontal spans to fill the circle
-        t.goto(xc - x, yc + y);
-        t.pendown();
-        t.goto(xc + x, yc + y);
+        t.goto(xc - x, yc + y)
+        t.pendown()
+        t.goto(xc + x, yc + y)
         t.penup()
-        t.goto(xc - x, yc - y);
-        t.pendown();
-        t.goto(xc + x, yc - y);
+        t.goto(xc - x, yc - y)
+        t.pendown()
+        t.goto(xc + x, yc - y)
         t.penup()
-        t.goto(xc - y, yc + x);
-        t.pendown();
-        t.goto(xc + y, yc + x);
+        t.goto(xc - y, yc + x)
+        t.pendown()
+        t.goto(xc + y, yc + x)
         t.penup()
-        t.goto(xc - y, yc - x);
-        t.pendown();
-        t.goto(xc + y, yc - x);
+        t.goto(xc - y, yc - x)
+        t.pendown()
+        t.goto(xc + y, yc - x)
         t.penup()
 
     while x <= y:
@@ -63,7 +61,7 @@ def draw_pixel_circle(t, xc, yc, r, fill_color):
 def draw_sky():
     top_y = HEIGHT // 2
     steps = top_y - HORIZON_Y_LAND
-    # Purple to Pink Gradient
+
     start = (140, 30, 140) if state["is_day"] else (20, 20, 60)
     end = (255, 60, 120) if state["is_day"] else (60, 20, 100)
 
@@ -78,9 +76,8 @@ def draw_sky():
         bg_t.pendown()
         bg_t.forward(WIDTH)
 
-current_stars = []
+
 def draw_single_star(t, x, y, size):
-    """Draws a star shape using a 144-degree angle."""
     t.penup()
     t.goto(x, y)
     t.setheading(0)
@@ -92,97 +89,103 @@ def draw_single_star(t, x, y, size):
 
     t.penup()
 
+
 def refresh_stars():
-    """Generates a fresh set of stars with varied sizes."""
     global current_stars
     current_stars = []
     star_cnt = random.randint(10, 20)
     for _ in range(star_cnt):
         x = random.randint(-580, 580)
         y = random.randint(0, 380)
-        # Increased size range to make the difference visible
         size = random.randint(2, 20)
         current_stars.append((x, y, size))
 
+
 def draw_stars():
-    """Draws the stars using the current_stars list."""
     if not state["is_day"]:
         for x, y, size in current_stars:
-            # Avoid drawing on the moon area
             if not (x > 380 and y > 180):
                 draw_single_star(ui_t, x, y, size)
 
 
+def draw_midpoint_wave_segment(t, xc, yc, r):
+    """Calculates the bottom half of a circle using Midpoint Algorithm."""
+    x, y = 0, r
+    d = 1 - r
+    points = []
+    while x <= y:
+        # Subtracting from yc ensures the points go DOWN into the river
+        points.append((xc + x, yc - y))
+        points.append((xc - x, yc - y))
+        points.append((xc + y, yc - x))
+        points.append((xc - y, yc - x))
+        if d < 0:
+            d = d + 2 * x + 3
+        else:
+            d = d + 2 * (x - y) + 5
+            y -= 1
+        x += 1
+    points.sort(key=lambda p: p[0])
+    for p in points:
+        t.goto(p)
+
+
+
 def draw_river():
-    top_y = HORIZON_Y_RIVER
-    bottom_y = -HEIGHT // 2
-    steps = abs(top_y - bottom_y)
-
-    # 1. First, draw the "Pointed Waves" (Shoreline) from image_4e7d9b.png
-    bg_t.penup()
-    bg_t.goto(-RIVER_WIDTH // 2, top_y)
-    bg_t.color(255, 50, 100)  # Vibrant Pink
-    bg_t.setheading(0)
-    bg_t.pensize(2)
-
-    num_waves = 10
-    wave_width = RIVER_WIDTH / num_waves
-
-    # Optional: Fill the waves with the starting river color
-    bg_t.begin_fill()
-    bg_t.color(255, 50, 100)
-    # for _ in range(num_waves):
-    #     bg_t.circle(wave_width / 1.5, -110)  # Pointed arc logic
-    #     bg_t.setheading(0)
-    # bg_t.goto(RIVER_WIDTH // 2, -HEIGHT // 2)
-    # bg_t.goto(-RIVER_WIDTH // 2, -HEIGHT // 2)
-    # bg_t.end_fill()
-
-    # 2. Draw the Smooth Gradient with "Opacity" Blending
-    # Background color at horizon (Pinkish)
-    bg_color = (121, 181, 225)
-
-    # Target River Colors (from image_4e8cfd.png)
-    top_river = (115, 199, 225)  # Lavender
-    bottom_river = (62, 179, 215)  # Cornflower Blue
-
-    opacity = 0.6  # Adjust this for more/less transparency
-
+    # 1. Draw the Gradient FIRST (The Water Body)
+    # This ensures the waves can sit ON TOP
+    steps = abs(HORIZON_Y_RIVER - (-HEIGHT // 2))
     for i in range(steps):
         ratio = i / steps
-
-        # Interpolate the raw river color
-        target_r = top_river[0] + (bottom_river[0] - top_river[0]) * ratio
-        target_g = top_river[1] + (bottom_river[1] - top_river[1]) * ratio
-        target_b = top_river[2] + (bottom_river[2] - top_river[2]) * ratio
-
-        # Blend with Background to simulate transparency
-        r = int((bg_color[0] * (1 - opacity)) + (target_r * opacity))
-        g = int((bg_color[1] * (1 - opacity)) + (target_g * opacity))
-        b = int((bg_color[2] * (1 - opacity)) + (target_b * opacity))
+        # Using your exact color: (62, 179, 215)
+        r = int(72 * (1 - ratio) + 52 * ratio)
+        g = int(189 * (1 - ratio) + 169 * ratio)
+        b = int(225 * (1 - ratio) + 205 * ratio)
 
         bg_t.penup()
-        bg_t.goto(-RIVER_WIDTH // 2, top_y - i)
+        bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y_RIVER - i)
         bg_t.color(r, g, b)
         bg_t.pendown()
         bg_t.forward(RIVER_WIDTH)
 
+    # 1. DRAW THE PINK WAVES (Constrained to RIVER_WIDTH)
+    bg_t.penup()
+    # Start exactly at the left edge of the river
+    bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y_RIVER)
+    if state["is_day"]:
+        bg_t.color(255, 60, 120)
+    else:
+        bg_t.color(60, 20, 100)
+    bg_t.begin_fill()
+
+    num_waves = 8
+    wave_span = RIVER_WIDTH / num_waves
+    radius = wave_span / 2
+
+    # Draw the downward scallops
+    for i in range(num_waves):
+        xc = (-RIVER_WIDTH // 2) + (i * wave_span) + radius
+        yc = HORIZON_Y_RIVER
+        draw_midpoint_wave_segment(bg_t, xc, yc, radius)
+
+    # 2. CLOSE THE SHAPE WITHIN RIVER BOUNDARIES
+    # Instead of going to screen edges, stay at +/- RIVER_WIDTH // 2
+    bg_t.goto(RIVER_WIDTH // 2, HORIZON_Y_RIVER + 50)  # Top Right of wave area
+    bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y_RIVER + 50)  # Top Left of wave area
+    bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y_RIVER)  # Back to start
+    bg_t.end_fill()
+
 def draw_land_and_river():
-    # 1. River (Middle)
-    # The river starts at -250 and ends at +250
+
     bg_t.penup()
     draw_river()
 
-    # 2. Gradient Land
-    # Left Land: starts at -600, width is 350 (reduced from 450)
-    # Right Land: starts at 250, width is 350 (reduced from 450)
     for x_start in [-WIDTH // 2, RIVER_WIDTH // 2]:
-        land_w = (WIDTH // 2) - (RIVER_WIDTH // 2)  # This calculates to 350
+        land_w = (WIDTH // 2) - (RIVER_WIDTH // 2)
         steps = abs(HORIZON_Y_LAND - (-HEIGHT // 2))
 
         for i in range(steps):
             ratio = i / steps
-            # Smooth Brown to Green transition
             r = int(105 * (1 - ratio) + 45 * ratio)
             g = int(85 * (1 - ratio) + 95 * ratio)
             b = int(40 * (1 - ratio) + 45 * ratio)
@@ -195,15 +198,15 @@ def draw_land_and_river():
 
 
 def draw_play_button():
-    bx, by = 0, 150  # Centered button position
+    bx, by = 0, 150
 
     if state["is_day"]:
-        button_fill = (255, 200, 80)  # Golden Sun
+        button_fill = (255, 200, 80)
         button_edge = "black"
         text_color = "black"
     else:
-        button_fill = (100, 100, 140)  # Muted Night Blue/Silver
-        button_edge = (200, 200, 255)  # Light Blue Glow
+        button_fill = (100, 100, 140)
+        button_edge = (200, 200, 255)
         text_color = "white"
 
     ui_t.penup()
@@ -215,7 +218,7 @@ def draw_play_button():
         ui_t.forward(200);
         ui_t.circle(40, 180)
     ui_t.end_fill()
-    # Corrected text position relative to button
+
     ui_t.goto(bx + 5, by + 120)
     ui_t.color(text_color)
     ui_t.write("PLAY", align="center", font=("Arial", 35, "bold"))
@@ -249,7 +252,7 @@ def handle_click(x, y):
             refresh_stars()
 
         render()
-    elif -100 < x < 100 and 240 < y < 330:  # PLAY button area
+    elif -100 < x < 100 and 240 < y < 330:
         state["game_started"] = True
         render()
 
