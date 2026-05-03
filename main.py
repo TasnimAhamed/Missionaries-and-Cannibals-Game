@@ -1,11 +1,15 @@
 import turtle
 import random
+import time
 
 # --- Configuration ---
 WIDTH, HEIGHT = 1200, 800
 RIVER_WIDTH = 500
 HORIZON_Y_RIVER = -120
 HORIZON_Y_LAND = -120
+
+LEFT_BANK_X = -150
+RIGHT_BANK_X = 150
 
 screen = turtle.Screen()
 root = screen._root
@@ -15,15 +19,23 @@ screen.setup(WIDTH, HEIGHT)
 screen.colormode(255)
 screen.tracer(0)
 
-state = {"is_day": True, "game_started": False}
+state = {
+    "is_day": True,
+    "game_started": False,
+    "boat_position": "left",    # Current bank
+    "boat_x": LEFT_BANK_X,             # The actual coordinate being drawn
+    "target_x": LEFT_BANK_X,           # Where the boat wants to go
+    "boat_speed": 10            # How many pixels it moves per frame
+}
 current_stars = []
 
 bg_t = turtle.Turtle()
 bird_t = turtle.Turtle()
 boat_t = turtle.Turtle()
 ui_t = turtle.Turtle()
+test_t = turtle.Turtle()
 
-for t in [bg_t, ui_t, bird_t, boat_t]: t.hideturtle()
+for t in [bg_t, ui_t, bird_t, boat_t, test_t]: t.hideturtle()
 
 def draw_pixel_circle(t, xc, yc, r, fill_color):
     t.penup()
@@ -252,7 +264,7 @@ def create_random_flock(num_birds):
         draw_bird(t, rand_x, rand_y, rand_size, rand_heading_first, rand_heading_second)
 
 
-def draw_boat(t, x, y, scale=1.5, is_day=True):
+def draw_boat(t, x, y, scale=1.5):
 
     t.penup()
     t.goto(x - (50 * scale), y)
@@ -304,16 +316,34 @@ def draw_boat(t, x, y, scale=1.5, is_day=True):
     t.penup()
 
 
+def animate_boat(start_x, end_x):
+    steps = 20  # How many frames the animation takes
+    distance = (end_x - start_x) / steps
+
+    for i in range(steps + 1):
+        current_x = start_x + (distance * i)
+
+        # Clear only the boat turtle, not the background!
+        boat_t.clear()
+
+        # Draw the boat at the new position
+        # (Using your perfect draw_boat function)
+        draw_boat(boat_t, current_x, HORIZON_Y_RIVER, scale=1.5)
+
+        screen.update()
+        time.sleep(0.01)
+
 def render():
     bg_t.clear()
     ui_t.clear()
+    boat_t.clear()
+
     draw_sky()
     draw_land_and_river()
     draw_stars()
-    draw_boat(boat_t, -155, HORIZON_Y_RIVER - 35, scale=1.2, is_day=state["is_day"])
 
-    if state["is_day"]:
-        create_random_flock(10)
+    # if state["is_day"]:
+    #     create_random_flock(10)
 
     if state["is_day"]:
         draw_pixel_circle(ui_t, 460, 280, 65, (255, 255, 0))
@@ -323,20 +353,52 @@ def render():
 
     if not state["game_started"]:
         draw_play_button()
+
+    if state["boat_x"] < state["target_x"]:
+        state["boat_x"] += state["boat_speed"]
+        # If we passed the target, snap to it
+        if state["boat_x"] > state["target_x"]:
+            state["boat_x"] = state["target_x"]
+
+    elif state["boat_x"] > state["target_x"]:
+        state["boat_x"] -= state["boat_speed"]
+        # If we passed the target, snap to it
+        if state["boat_x"] < state["target_x"]:
+            state["boat_x"] = state["target_x"]
+
+        # Drawing the boat at the exact Y coordinate of your river
+        # Use -35 or similar to submerge the hull slightly into the water
+    draw_boat(boat_t, state["boat_x"], HORIZON_Y_RIVER - 35, scale=1.5)
+
+    if not state["game_started"]:
+        draw_play_button()
+
     screen.update()
+    screen.ontimer(render, 16)
 
 
 def handle_click(x, y):
+    # 1. Day/Night Toggle
     if x > 400 and y > 180:
         state["is_day"] = not state["is_day"]
         if not state["is_day"]:
             refresh_stars()
+        # REMOVED render() - the main loop handles it
 
-        render()
+    # 2. Play Button
     elif -100 < x < 100 and 240 < y < 330:
         state["game_started"] = True
-        render()
+        # REMOVED render()
 
+    # 3. Boat Movement
+    # Check if boat is stationary before allowing a new move
+    if state["boat_x"] == state["target_x"]:
+        # Adjust Y check to match your boat's visual position (HORIZON_Y_RIVER - 35)
+        if abs(x - state["boat_x"]) < 80 and abs(y - (HORIZON_Y_RIVER - 35)) < 60:
+            if state["target_x"] == LEFT_BANK_X:
+                state["target_x"] = RIGHT_BANK_X
+            else:
+                state["target_x"] = LEFT_BANK_X
 
 render()
 screen.onclick(handle_click)
