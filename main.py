@@ -14,6 +14,14 @@ RIGHT_BANK_X = 150
 CHAR_START_X = -280
 CHAR_Y = -30
 
+# Grass Standing Areas (Where characters wait)
+LEFT_GRASS_X = -280   # Further left than the boat
+RIGHT_GRASS_X = 280   # Further right than the boat
+
+# Vertical Rows
+MISSIONARY_Y = -30     # Top row
+CANNIBAL_Y = -30      # Bottom row
+
 screen = turtle.Screen()
 root = screen._root
 root.wm_attributes("-topmost", 1)
@@ -34,16 +42,54 @@ state = {
     "target_x": LEFT_BANK_X,
     "boat_speed": 10,
     "birds_data": [],
+    "boat_passengers" : [],
+    "ui_message": "",
     "missionaries": [
-        {"x": CHAR_START_X- 10, "y": CHAR_Y - 65, "on_boat": False},
-        {"x": CHAR_START_X - 60, "y": CHAR_Y - 65, "on_boat": False},
-        {"x": CHAR_START_X - 110, "y": CHAR_Y - 65, "on_boat": False},
+        {
+            "x": LEFT_GRASS_X - 10,
+            "y": MISSIONARY_Y - 68,
+            "home_x": LEFT_GRASS_X - 10,  # Added this
+            "home_y": MISSIONARY_Y - 68,  # Added this
+            "side": "left"
+        },
+        {
+            "x": LEFT_GRASS_X - 60,
+            "y": MISSIONARY_Y - 68,
+            "home_x": LEFT_GRASS_X - 60,
+            "home_y": MISSIONARY_Y - 68,
+            "side": "left"
+        },
+        {
+            "x": LEFT_GRASS_X - 110,
+            "y": MISSIONARY_Y - 68,
+            "home_x": LEFT_GRASS_X - 110,
+            "home_y": MISSIONARY_Y - 68,
+            "side": "left"
+        }
     ],
     "cannibals": [
-        {"x": CHAR_START_X - 160, "y": CHAR_Y - 65, "on_boat": False},
-        {"x": CHAR_START_X - 210, "y": CHAR_Y - 65, "on_boat": False},
-        {"x": CHAR_START_X - 260, "y": CHAR_Y - 65, "on_boat": False},
-    ],
+        {
+            "x": LEFT_GRASS_X - 160,
+            "y": CANNIBAL_Y - 68,
+            "home_x": LEFT_GRASS_X - 160,
+            "home_y": CANNIBAL_Y - 68,
+            "side": "left"
+        },
+        {
+            "x": LEFT_GRASS_X - 210,
+            "y": CANNIBAL_Y - 68,
+            "home_x": LEFT_GRASS_X - 210,
+            "home_y": CANNIBAL_Y - 68,
+            "side": "left"
+        },
+        {
+            "x": LEFT_GRASS_X - 260,
+            "y": CANNIBAL_Y - 68,
+            "home_x": LEFT_GRASS_X - 260,
+            "home_y": CANNIBAL_Y - 68,
+            "side": "left"
+        }
+    ]
 }
 current_stars = []
 
@@ -52,9 +98,23 @@ bird_t = turtle.Turtle()
 boat_t = turtle.Turtle()
 ui_t = turtle.Turtle()
 char_t = turtle.Turtle()
+msg_t = turtle.Turtle()
 test_t = turtle.Turtle()
 
-for t in [bg_t, ui_t, bird_t, boat_t, char_t, test_t]: t.hideturtle()
+for t in [bg_t, ui_t, bird_t, boat_t, char_t, msg_t, test_t]: t.hideturtle()
+
+
+msg_t.hideturtle()
+msg_t.penup()
+msg_t.color("white")
+def show_message(text):
+    state["ui_message"] = text
+    # The timer still works exactly the same!
+    screen.ontimer(hide_message, 2000)
+
+def hide_message():
+    state["ui_message"] = ""
+    msg_t.clear() # Clear it once when the timer ends
 
 
 def draw_pixel_circle(t, xc, yc, r, fill_color):
@@ -428,39 +488,80 @@ def draw_cannibal(t, x, y, size=1.0):
 
     t.penup()
 
+
+def toggle_passenger(char_obj):
+    # --- NEW GUARD ---
+    # If the game hasn't started, exit the function immediately
+    if not state["game_started"]:
+        show_message("Click PLAY to start!")
+        return
+
+        # Determine boat's current side
+    boat_side = "left" if state["boat_x"] <= 0 else "right"
+
+    # CASE A: If character is already on boat -> Move back to current bank
+    if char_obj in state["boat_passengers"]:
+        state["boat_passengers"].remove(char_obj)
+        char_obj["side"] = boat_side
+
+        if boat_side == "left":
+            char_obj["x"] = char_obj["home_x"]
+        else:
+            char_obj["x"] = abs(char_obj["home_x"])
+
+        char_obj["y"] = char_obj["home_y"]
+
+    # CASE B: If character is on bank -> Board the boat
+    else:
+        # Rules: Boat must have space AND character must be on the same side
+        if len(state["boat_passengers"]) < 2 and char_obj["side"] == boat_side:
+            state["boat_passengers"].append(char_obj)
+        elif len(state["boat_passengers"]) >= 2:
+            show_message("Boat is full!")
+        else:
+            show_message("Boat is on the other side!")
+
 def render():
     # 1. Clear everything at the start of the frame
     bg_t.clear()
     ui_t.clear()
     boat_t.clear()
+    char_t.clear()
 
     # 2. Draw Background (Sky, Land, Stars)
     draw_sky()
     draw_land_and_river()
     draw_stars()
 
-    # 3. Draw Birds from the FIXED list (No more flickering!)
+    # 3. Draw Boat (at current position)
+    draw_boat(boat_t, state["boat_x"], HORIZON_Y_RIVER - 35, scale=1.5)
+
+    # 4. Draw Birds from the FIXED list (No more flickering!)
     if state["is_day"]:
         for b in state["birds_data"]:
             # Pass 6 arguments: turtle, x, y, size, h1, h2
             draw_bird(bird_t, b["x"], b["y"], b["size"], b["h1"], b["h2"])
 
-    # 4. Sun / Moon logic
+    # 5. Sun / Moon logic
     if state["is_day"]:
         draw_pixel_circle(ui_t, 460, 280, 65, (255, 255, 0))
     else:
         draw_pixel_circle(ui_t, 460, 280, 65, (240, 240, 240))
         draw_pixel_circle(ui_t, 485, 295, 65, (40, 20, 80))
 
-    # Draw Missionaries from state
+    # Update positions for characters currently on the boat
+    for i, p in enumerate(state["boat_passengers"]):
+        # Place them side-by-side in the boat
+        p["x"] = state["boat_x"] + (-60 if i == 0 else 60)
+        p["y"] = HORIZON_Y_RIVER + 32  # Adjust height to sit in the boat
+
+    # Draw all characters
     for m in state["missionaries"]:
-        draw_missionary(char_t, m["x"], m["y"], size=1.2)
-
-    # Draw Cannibals from state
+        draw_missionary(char_t, m["x"], m["y"], size=1.0)
     for c in state["cannibals"]:
-        draw_cannibal(char_t, c["x"], c["y"], size=1.2)
+        draw_cannibal(char_t, c["x"], c["y"], size=1.0)
 
-    # 5. Boat Physics (Movement Logic)
+    # 6. Boat Physics (Movement Logic)
     if state["game_started"]:
         if state["boat_x"] < state["target_x"]:
             state["boat_x"] += state["boat_speed"]
@@ -469,12 +570,18 @@ def render():
             state["boat_x"] -= state["boat_speed"]
             if state["boat_x"] < state["target_x"]: state["boat_x"] = state["target_x"]
 
-    # 6. Draw Boat (at current position)
-    draw_boat(boat_t, state["boat_x"], HORIZON_Y_RIVER - 35, scale=1.5)
 
     # 7. UI elements
     if not state["game_started"]:
         draw_play_button()
+
+    # --- DRAW UI MESSAGE ---
+    if state["ui_message"] != "":
+        msg_t.clear()  # Clear previous frame's text
+        msg_t.goto(-580, 350)
+        msg_t.write(state["ui_message"], font=("Arial", 20, "bold"))
+    else:
+        msg_t.clear()
 
     # 8. Final Update and Timer
     screen.update()
@@ -491,15 +598,34 @@ def handle_click(x, y):
     elif -100 < x < 100 and 240 < y < 330:
         state["game_started"] = True
 
-    # Boat Movement (Only if boat is not already moving)
-    if state["game_started"]:
-        if state["boat_x"] == state["target_x"]:
-            # Boat hit-box check
-            if abs(x - state["boat_x"]) < 80 and abs(y - (HORIZON_Y_RIVER - 35)) < 60:
+    # --- 2. Character Clicks ---
+    # Only allow character movement if the boat is NOT moving
+    if state["boat_x"] == state["target_x"]:
+        # Check Missionaries
+        for m in state["missionaries"]:
+            if abs(x - m["x"]) < 30 and abs(y - m["y"]) < 40:
+                toggle_passenger(m)
+                return  # Exit after one click
+
+        # Check Cannibals
+        for c in state["cannibals"]:
+            if abs(x - c["x"]) < 30 and abs(y - c["y"]) < 40:
+                toggle_passenger(c)
+                return
+
+    # --- 3. Boat Movement ---
+    # Change: Boat only moves if it has 1 or 2 passengers
+    if state["game_started"] and state["boat_x"] == state["target_x"]:
+        if abs(x - state["boat_x"]) < 80 and abs(y - (HORIZON_Y_RIVER - 35)) < 60:
+            if 1 <= len(state["boat_passengers"]) <= 2:
                 if state["target_x"] == LEFT_BANK_X:
                     state["target_x"] = RIGHT_BANK_X
                 else:
                     state["target_x"] = LEFT_BANK_X
+            else:
+                show_message("Boat needs 1 or 2 people to move!")
+    else:
+        show_message("Click PLAY to start!")
 
 render() # Starts the single, unified game loop
 screen.onclick(handle_click)
