@@ -344,12 +344,13 @@ def render():
         draw_pixel_circle(ui_t, 485, 295, 65, (40, 20, 80))
 
     # 5. Boat Physics (Movement Logic)
-    if state["boat_x"] < state["target_x"]:
-        state["boat_x"] += state["boat_speed"]
-        if state["boat_x"] > state["target_x"]: state["boat_x"] = state["target_x"]
-    elif state["boat_x"] > state["target_x"]:
-        state["boat_x"] -= state["boat_speed"]
-        if state["boat_x"] < state["target_x"]: state["boat_x"] = state["target_x"]
+    if state["game_started"]:
+        if state["boat_x"] < state["target_x"]:
+            state["boat_x"] += state["boat_speed"]
+            if state["boat_x"] > state["target_x"]: state["boat_x"] = state["target_x"]
+        elif state["boat_x"] > state["target_x"]:
+            state["boat_x"] -= state["boat_speed"]
+            if state["boat_x"] < state["target_x"]: state["boat_x"] = state["target_x"]
 
     # 6. Draw Boat (at current position)
     draw_boat(boat_t, state["boat_x"], HORIZON_Y_RIVER - 35, scale=1.5)
@@ -374,13 +375,14 @@ def handle_click(x, y):
         state["game_started"] = True
 
     # Boat Movement (Only if boat is not already moving)
-    if state["boat_x"] == state["target_x"]:
-        # Boat hit-box check
-        if abs(x - state["boat_x"]) < 80 and abs(y - (HORIZON_Y_RIVER - 35)) < 60:
-            if state["target_x"] == LEFT_BANK_X:
-                state["target_x"] = RIGHT_BANK_X
-            else:
-                state["target_x"] = LEFT_BANK_X
+    if state["game_started"]:
+        if state["boat_x"] == state["target_x"]:
+            # Boat hit-box check
+            if abs(x - state["boat_x"]) < 80 and abs(y - (HORIZON_Y_RIVER - 35)) < 60:
+                if state["target_x"] == LEFT_BANK_X:
+                    state["target_x"] = RIGHT_BANK_X
+                else:
+                    state["target_x"] = LEFT_BANK_X
 
 render() # Starts the single, unified game loop
 screen.onclick(handle_click)
