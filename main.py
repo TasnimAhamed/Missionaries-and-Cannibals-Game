@@ -18,13 +18,12 @@ screen.tracer(0)
 state = {"is_day": True, "game_started": False}
 current_stars = []
 
-bg_t = turtle.Turtle()     # sky + river
-bird_t = turtle.Turtle()   # birds only
+bg_t = turtle.Turtle()
+bird_t = turtle.Turtle()
 boat_t = turtle.Turtle()
 ui_t = turtle.Turtle()
 
 for t in [bg_t, ui_t, bird_t, boat_t]: t.hideturtle()
-
 
 def draw_pixel_circle(t, xc, yc, r, fill_color):
     t.penup()
@@ -59,7 +58,6 @@ def draw_pixel_circle(t, xc, yc, r, fill_color):
             d = d + 2 * (x - y) + 5
             y -= 1
         x += 1
-
 
 
 def draw_sky():
@@ -113,12 +111,10 @@ def draw_stars():
 
 
 def draw_midpoint_wave_segment(t, xc, yc, r):
-    """Calculates the bottom half of a circle using Midpoint Algorithm."""
     x, y = 0, r
     d = 1 - r
     points = []
     while x <= y:
-        # Subtracting from yc ensures the points go DOWN into the river
         points.append((xc + x, yc - y))
         points.append((xc - x, yc - y))
         points.append((xc + y, yc - x))
@@ -134,14 +130,12 @@ def draw_midpoint_wave_segment(t, xc, yc, r):
         t.goto(p)
 
 
-
 def draw_river():
-    # 1. Draw the Gradient FIRST (The Water Body)
-    # This ensures the waves can sit ON TOP
+
     steps = abs(HORIZON_Y_RIVER - (-HEIGHT // 2))
     for i in range(steps):
         ratio = i / steps
-        # Using your exact color: (62, 179, 215)
+
         r = int(72 * (1 - ratio) + 52 * ratio)
         g = int(189 * (1 - ratio) + 169 * ratio)
         b = int(225 * (1 - ratio) + 205 * ratio)
@@ -152,9 +146,7 @@ def draw_river():
         bg_t.pendown()
         bg_t.forward(RIVER_WIDTH)
 
-    # 1. DRAW THE PINK WAVES (Constrained to RIVER_WIDTH)
     bg_t.penup()
-    # Start exactly at the left edge of the river
     bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y_RIVER)
 
     num_waves = 8
@@ -162,51 +154,26 @@ def draw_river():
     radius = wave_span / 2
 
     for i in range(num_waves):
-        # Calculate exactly where this wave should start
+
         start_x = (-RIVER_WIDTH // 2) + (i * wave_span)
 
         bg_t.penup()
         bg_t.goto(start_x, HORIZON_Y_RIVER)
-        bg_t.setheading(-90)  # Point down to start the curve
+        bg_t.setheading(-90)
         bg_t.pendown()
-
-        # Determine wave color based on time of day
         if state["is_day"]:
             bg_t.color(255, 60, 120)
         else:
             bg_t.color(60, 20, 100)
 
         bg_t.begin_fill()
-
-        # 1. Draw the bottom half circle using the calculated radius
         bg_t.circle(radius, 180)
-
-        # 2. Close the shape by going back to the start of THIS specific wave
-        # This prevents the 'diagonal line' glitch
         bg_t.goto(start_x, HORIZON_Y_RIVER)
 
         bg_t.end_fill()
 
-    # Reset heading once after the loop is finished
     bg_t.setheading(0)
 
-    # bg_t.begin_fill()
-    # num_waves = 8
-    # wave_span = RIVER_WIDTH / num_waves
-    # radius = wave_span / 2
-    #
-    # # Draw the downward scallops
-    # for i in range(num_waves):
-    #     xc = (-RIVER_WIDTH // 2) + (i * wave_span) + radius
-    #     yc = HORIZON_Y_RIVER
-    #     draw_midpoint_wave_segment(bg_t, xc, yc, radius)
-    #
-    # # 2. CLOSE THE SHAPE WITHIN RIVER BOUNDARIES
-    # # Instead of going to screen edges, stay at +/- RIVER_WIDTH // 2
-    # bg_t.goto(RIVER_WIDTH // 2, HORIZON_Y_RIVER + 50)  # Top Right of wave area
-    # bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y_RIVER + 50)  # Top Left of wave area
-    # bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y_RIVER)  # Back to start
-    # bg_t.end_fill()
 
 def draw_land_and_river():
 
@@ -258,42 +225,31 @@ def draw_play_button():
 
 
 def draw_bird(t, x, y, size, heading_first, heading_second):
-    """
-    Draws a single bird with a specific heading and size.
-    """
     t.penup()
     t.goto(x, y)
     t.color("black")
     t.pensize(2)
-    t.setheading(heading_first)  # Point up-right for the first wing
+    t.setheading(heading_first)
     t.pendown()
 
-    # Left wing
     t.circle(size, 90)
 
-    # Reset and tilt for the right wing
     t.setheading(heading_second)
-
-    # Right wing
     t.circle(size, 90)
     t.penup()
 
 
 def create_random_flock(num_birds):
     for _ in range(num_birds):
-        # 1. Randomize Coordinates (Adjust ranges to fit your sky)
         rand_x = random.randint(-800, 600)
         rand_y = random.randint(150, 400)
 
-        # 2. Randomize Size (Smaller = further away)
         rand_size = random.randint(10, 15)
 
-        # 3. Randomize Heading (90 to 130 as requested)
         rand_heading_first = random.randint(90, 130)
         rand_heading_second = random.randint(90, 130)
 
         draw_bird(t, rand_x, rand_y, rand_size, rand_heading_first, rand_heading_second)
-
 
 
 def render():
@@ -306,12 +262,10 @@ def render():
     if state["is_day"]:
         create_random_flock(10)
 
-    # Celestial Body (Midpoint Circle)
     if state["is_day"]:
         draw_pixel_circle(ui_t, 460, 280, 65, (255, 255, 0))
     else:
         draw_pixel_circle(ui_t, 460, 280, 65, (240, 240, 240))
-        # Moon Cutout (match night sky color)
         draw_pixel_circle(ui_t, 485, 295, 65, (40, 20, 80))
 
     if not state["game_started"]:
