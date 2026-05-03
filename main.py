@@ -504,10 +504,10 @@ def toggle_passenger(char_obj):
         state["boat_passengers"].remove(char_obj)
         char_obj["side"] = boat_side
 
-        result = check_game_over()
-        if result:
-            show_message(result)
-            state["game_started"] = False
+        # result = check_game_over()
+        # if result:
+        #     show_message(result)
+        #     state["game_started"] = False
 
         if boat_side == "left":
             char_obj["x"] = char_obj["home_x"]
@@ -523,10 +523,10 @@ def toggle_passenger(char_obj):
             state["boat_passengers"].append(char_obj)
             char_obj["side"] = "boat"
 
-            result = check_game_over()
-            if result:
-                show_message(result)
-                state["game_started"] = False
+            # result = check_game_over()
+            # if result:
+            #     show_message(result)
+            #     state["game_started"] = False
 
         elif len(state["boat_passengers"]) >= 2:
             show_message("Boat is full!")
@@ -686,10 +686,19 @@ def handle_click(x, y):
     if state["game_started"] and state["boat_x"] == state["target_x"]:
         if abs(x - state["boat_x"]) < 80 and abs(y - (HORIZON_Y_RIVER - 35)) < 60:
             if 1 <= len(state["boat_passengers"]) <= 2:
-                if state["target_x"] == LEFT_BANK_X:
-                    state["target_x"] = RIGHT_BANK_X
+
+                result = check_game_over()
+                if result:
+                    show_message(result)
+                    state["game_started"] = False
                 else:
-                    state["target_x"] = LEFT_BANK_X
+                    # Move the boat
+                    state["target_x"] = RIGHT_BANK_X if state["target_x"] == LEFT_BANK_X else LEFT_BANK_X
+
+                # if state["target_x"] == LEFT_BANK_X:
+                #     state["target_x"] = RIGHT_BANK_X
+                # else:
+                #     state["target_x"] = LEFT_BANK_X
             else:
                 show_message("Boat needs 1 or 2 people to move!")
     else:
