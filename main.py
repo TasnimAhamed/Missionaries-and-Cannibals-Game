@@ -252,12 +252,65 @@ def create_random_flock(num_birds):
         draw_bird(t, rand_x, rand_y, rand_size, rand_heading_first, rand_heading_second)
 
 
+def draw_boat(t, x, y, scale=1.5, is_day=True):
+
+    t.penup()
+    t.goto(x - (50 * scale), y)
+    t.setheading(0)
+
+    if state["is_day"]:
+        hull_color = (110, 60, 30)
+        sail_color = (255, 255, 245)
+        mast_color = (50, 30, 10)
+    else:
+        hull_color = (100, 100, 140)
+        sail_color = (160, 160, 170)
+        mast_color = (100, 110, 140)
+
+    # 1. Hull - Made slightly deeper for a "bigger" look
+    t.color(hull_color)
+    t.begin_fill()
+    t.forward(100 * scale)
+    t.left(50)
+    t.forward(40 * scale)
+    t.left(130)
+    t.forward(152 * scale)
+    t.left(130)
+    t.forward(40 * scale)
+    t.end_fill()
+
+    # 2. Mast - Positioned on the deck
+    t.penup()
+    t.goto(x, y + 30 * scale)
+    t.setheading(90)
+    t.pensize(max(1, int(4 * scale)))
+    t.color(mast_color)
+    t.pendown()
+    t.forward(100 * scale)
+
+    # --- 3. Large 3D Sail
+    t.penup()
+    t.goto(x, y + 130 * scale)
+
+    # Sail Colors: Using an off-white/cream for a more realistic look
+    t.color(sail_color)
+    t.begin_fill()
+    t.setheading(-140)
+    t.forward(100 * scale)
+    t.setheading(0)
+    t.forward(75 * scale)
+    t.goto(x, y + 130 * scale)
+    t.end_fill()
+    t.penup()
+
+
 def render():
     bg_t.clear()
     ui_t.clear()
     draw_sky()
     draw_land_and_river()
     draw_stars()
+    draw_boat(boat_t, -155, HORIZON_Y_RIVER - 35, scale=1.2, is_day=state["is_day"])
 
     if state["is_day"]:
         create_random_flock(10)
