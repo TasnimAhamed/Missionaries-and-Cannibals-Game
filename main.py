@@ -4,8 +4,8 @@ import random
 # --- Configuration ---
 WIDTH, HEIGHT = 1200, 800
 RIVER_WIDTH = 500
-HORIZON_Y_RIVER = -50
-HORIZON_Y_LAND = -50
+HORIZON_Y_RIVER = -120
+HORIZON_Y_LAND = -120
 
 screen = turtle.Screen()
 root = screen._root
@@ -152,28 +152,57 @@ def draw_river():
     bg_t.penup()
     # Start exactly at the left edge of the river
     bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y_RIVER)
-    if state["is_day"]:
-        bg_t.color(255, 60, 120)
-    else:
-        bg_t.color(60, 20, 100)
-    bg_t.begin_fill()
 
     num_waves = 8
     wave_span = RIVER_WIDTH / num_waves
     radius = wave_span / 2
 
-    # Draw the downward scallops
     for i in range(num_waves):
-        xc = (-RIVER_WIDTH // 2) + (i * wave_span) + radius
-        yc = HORIZON_Y_RIVER
-        draw_midpoint_wave_segment(bg_t, xc, yc, radius)
+        # Calculate exactly where this wave should start
+        start_x = (-RIVER_WIDTH // 2) + (i * wave_span)
 
-    # 2. CLOSE THE SHAPE WITHIN RIVER BOUNDARIES
-    # Instead of going to screen edges, stay at +/- RIVER_WIDTH // 2
-    bg_t.goto(RIVER_WIDTH // 2, HORIZON_Y_RIVER + 50)  # Top Right of wave area
-    bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y_RIVER + 50)  # Top Left of wave area
-    bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y_RIVER)  # Back to start
-    bg_t.end_fill()
+        bg_t.penup()
+        bg_t.goto(start_x, HORIZON_Y_RIVER)
+        bg_t.setheading(-90)  # Point down to start the curve
+        bg_t.pendown()
+
+        # Determine wave color based on time of day
+        if state["is_day"]:
+            bg_t.color(255, 60, 120)
+        else:
+            bg_t.color(60, 20, 100)
+
+        bg_t.begin_fill()
+
+        # 1. Draw the bottom half circle using the calculated radius
+        bg_t.circle(radius, 180)
+
+        # 2. Close the shape by going back to the start of THIS specific wave
+        # This prevents the 'diagonal line' glitch
+        bg_t.goto(start_x, HORIZON_Y_RIVER)
+
+        bg_t.end_fill()
+
+    # Reset heading once after the loop is finished
+    bg_t.setheading(0)
+
+    # bg_t.begin_fill()
+    # num_waves = 8
+    # wave_span = RIVER_WIDTH / num_waves
+    # radius = wave_span / 2
+    #
+    # # Draw the downward scallops
+    # for i in range(num_waves):
+    #     xc = (-RIVER_WIDTH // 2) + (i * wave_span) + radius
+    #     yc = HORIZON_Y_RIVER
+    #     draw_midpoint_wave_segment(bg_t, xc, yc, radius)
+    #
+    # # 2. CLOSE THE SHAPE WITHIN RIVER BOUNDARIES
+    # # Instead of going to screen edges, stay at +/- RIVER_WIDTH // 2
+    # bg_t.goto(RIVER_WIDTH // 2, HORIZON_Y_RIVER + 50)  # Top Right of wave area
+    # bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y_RIVER + 50)  # Top Left of wave area
+    # bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y_RIVER)  # Back to start
+    # bg_t.end_fill()
 
 def draw_land_and_river():
 
