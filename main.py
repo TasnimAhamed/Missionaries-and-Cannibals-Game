@@ -504,6 +504,11 @@ def toggle_passenger(char_obj):
         state["boat_passengers"].remove(char_obj)
         char_obj["side"] = boat_side
 
+        result = check_game_over()
+        if result:
+            show_message(result)
+            state["game_started"] = False
+
         if boat_side == "left":
             char_obj["x"] = char_obj["home_x"]
         else:
@@ -516,10 +521,65 @@ def toggle_passenger(char_obj):
         # Rules: Boat must have space AND character must be on the same side
         if len(state["boat_passengers"]) < 2 and char_obj["side"] == boat_side:
             state["boat_passengers"].append(char_obj)
+            char_obj["side"] = "boat"
+
+            result = check_game_over()
+            if result:
+                show_message(result)
+                state["game_started"] = False
+
         elif len(state["boat_passengers"]) >= 2:
             show_message("Boat is full!")
         else:
             show_message("Boat is on the other side!")
+
+
+def check_game_over():
+    # Count people on the left
+    m_left = sum(1 for m in state["missionaries"] if m["side"] == "left")
+    c_left = sum(1 for c in state["cannibals"] if c["side"] == "left")
+
+    # Count people on the right
+    m_right = sum(1 for m in state["missionaries"] if m["side"] == "right")
+    c_right = sum(1 for c in state["cannibals"] if c["side"] == "right")
+
+    # Check Left Bank: Missionaries die if C > M (and M is not 0)
+    if m_left > 0 and c_left > m_left:
+        return "Left Bank: The Missionaries were eaten!"
+
+    # Check Right Bank: Missionaries die if C > M (and M is not 0)
+    if m_right > 0 and c_right > m_right:
+        return "Right Bank: The Missionaries were eaten!"
+
+    return None  # Everyone is safe
+
+
+def check_win():
+    m_right = sum(1 for m in state["missionaries"] if m["side"] == "right")
+    c_right = sum(1 for c in state["cannibals"] if c["side"] == "right")
+
+    if m_right == 3 and c_right == 3:
+        return True
+    return False
+
+def process_arrival():
+    # Update side for passengers now that boat has landed
+    arrival_side = "left" if state["boat_x"] <= 0 else "right"
+    for p in state["boat_passengers"]:
+        p["side"] = arrival_side
+
+    # 1. Check if they won!
+    if check_win():
+        show_message("VICTORY! All crossed safely!")
+        state["game_started"] = False
+        return
+
+    # 2. Check if Missionaries were eaten
+    result = check_game_over()
+    if result:
+        show_message(result)
+        state["game_started"] = False
+
 
 def render():
     # 1. Clear everything at the start of the frame
@@ -563,13 +623,21 @@ def render():
 
     # 6. Boat Physics (Movement Logic)
     if state["game_started"]:
+        # Move Right
         if state["boat_x"] < state["target_x"]:
             state["boat_x"] += state["boat_speed"]
-            if state["boat_x"] > state["target_x"]: state["boat_x"] = state["target_x"]
+            if state["boat_x"] >= state["target_x"]:
+                state["boat_x"] = state["target_x"]
+                # --- CHECK LOGIC WHEN BOAT ARRIVES ---
+                process_arrival()
+
+        # Move Left
         elif state["boat_x"] > state["target_x"]:
             state["boat_x"] -= state["boat_speed"]
-            if state["boat_x"] < state["target_x"]: state["boat_x"] = state["target_x"]
-
+            if state["boat_x"] <= state["target_x"]:
+                state["boat_x"] = state["target_x"]
+                # --- CHECK LOGIC WHEN BOAT ARRIVES ---
+                process_arrival()
 
     # 7. UI elements
     if not state["game_started"]:
