@@ -22,10 +22,11 @@ screen.tracer(0)
 state = {
     "is_day": True,
     "game_started": False,
-    "boat_position": "left",    # Current bank
-    "boat_x": LEFT_BANK_X,             # The actual coordinate being drawn
-    "target_x": LEFT_BANK_X,           # Where the boat wants to go
-    "boat_speed": 10            # How many pixels it moves per frame
+    "boat_position": "left",
+    "boat_x": LEFT_BANK_X,
+    "target_x": LEFT_BANK_X,
+    "boat_speed": 10,
+    "birds_data": []
 }
 current_stars = []
 
@@ -251,18 +252,20 @@ def draw_bird(t, x, y, size, heading_first, heading_second):
     t.penup()
 
 
-def create_random_flock(num_birds):
+def initialize_birds(num_birds):
+    state["birds_data"] = []
     for _ in range(num_birds):
-        rand_x = random.randint(-800, 600)
-        rand_y = random.randint(150, 400)
+        bird = {
+            "x": random.randint(-800, 600),
+            "y": random.randint(150, 400),
+            "size": random.randint(10, 15),
+            "h1": random.randint(90, 130),
+            "h2": random.randint(90, 130)
+        }
+        state["birds_data"].append(bird)
 
-        rand_size = random.randint(10, 15)
-
-        rand_heading_first = random.randint(90, 130)
-        rand_heading_second = random.randint(90, 130)
-
-        draw_bird(t, rand_x, rand_y, rand_size, rand_heading_first, rand_heading_second)
-
+# 4. Call it once
+initialize_birds(10)
 
 def draw_boat(t, x, y, scale=1.5):
 
@@ -316,90 +319,70 @@ def draw_boat(t, x, y, scale=1.5):
     t.penup()
 
 
-def animate_boat(start_x, end_x):
-    steps = 20  # How many frames the animation takes
-    distance = (end_x - start_x) / steps
-
-    for i in range(steps + 1):
-        current_x = start_x + (distance * i)
-
-        # Clear only the boat turtle, not the background!
-        boat_t.clear()
-
-        # Draw the boat at the new position
-        # (Using your perfect draw_boat function)
-        draw_boat(boat_t, current_x, HORIZON_Y_RIVER, scale=1.5)
-
-        screen.update()
-        time.sleep(0.01)
-
 def render():
+    # 1. Clear everything at the start of the frame
     bg_t.clear()
     ui_t.clear()
     boat_t.clear()
 
+    # 2. Draw Background (Sky, Land, Stars)
     draw_sky()
     draw_land_and_river()
     draw_stars()
 
-    # if state["is_day"]:
-    #     create_random_flock(10)
+    # 3. Draw Birds from the FIXED list (No more flickering!)
+    if state["is_day"]:
+        for b in state["birds_data"]:
+            # Pass 6 arguments: turtle, x, y, size, h1, h2
+            draw_bird(bird_t, b["x"], b["y"], b["size"], b["h1"], b["h2"])
 
+    # 4. Sun / Moon logic
     if state["is_day"]:
         draw_pixel_circle(ui_t, 460, 280, 65, (255, 255, 0))
     else:
         draw_pixel_circle(ui_t, 460, 280, 65, (240, 240, 240))
         draw_pixel_circle(ui_t, 485, 295, 65, (40, 20, 80))
 
-    if not state["game_started"]:
-        draw_play_button()
-
+    # 5. Boat Physics (Movement Logic)
     if state["boat_x"] < state["target_x"]:
         state["boat_x"] += state["boat_speed"]
-        # If we passed the target, snap to it
-        if state["boat_x"] > state["target_x"]:
-            state["boat_x"] = state["target_x"]
-
+        if state["boat_x"] > state["target_x"]: state["boat_x"] = state["target_x"]
     elif state["boat_x"] > state["target_x"]:
         state["boat_x"] -= state["boat_speed"]
-        # If we passed the target, snap to it
-        if state["boat_x"] < state["target_x"]:
-            state["boat_x"] = state["target_x"]
+        if state["boat_x"] < state["target_x"]: state["boat_x"] = state["target_x"]
 
-        # Drawing the boat at the exact Y coordinate of your river
-        # Use -35 or similar to submerge the hull slightly into the water
+    # 6. Draw Boat (at current position)
     draw_boat(boat_t, state["boat_x"], HORIZON_Y_RIVER - 35, scale=1.5)
 
+    # 7. UI elements
     if not state["game_started"]:
         draw_play_button()
 
+    # 8. Final Update and Timer
     screen.update()
-    screen.ontimer(render, 16)
-
+    screen.ontimer(render, 16) # This keeps the whole game running at 60FPS
 
 def handle_click(x, y):
-    # 1. Day/Night Toggle
+    # Day/Night Toggle
     if x > 400 and y > 180:
         state["is_day"] = not state["is_day"]
         if not state["is_day"]:
             refresh_stars()
-        # REMOVED render() - the main loop handles it
 
-    # 2. Play Button
+    # Play Button
     elif -100 < x < 100 and 240 < y < 330:
         state["game_started"] = True
-        # REMOVED render()
 
-    # 3. Boat Movement
-    # Check if boat is stationary before allowing a new move
+    # Boat Movement (Only if boat is not already moving)
     if state["boat_x"] == state["target_x"]:
-        # Adjust Y check to match your boat's visual position (HORIZON_Y_RIVER - 35)
+        # Boat hit-box check
         if abs(x - state["boat_x"]) < 80 and abs(y - (HORIZON_Y_RIVER - 35)) < 60:
             if state["target_x"] == LEFT_BANK_X:
                 state["target_x"] = RIGHT_BANK_X
             else:
                 state["target_x"] = LEFT_BANK_X
 
-render()
+render() # Starts the single, unified game loop
 screen.onclick(handle_click)
 screen.mainloop()
+turtle.done()
