@@ -1,49 +1,75 @@
 import turtle
 
-# --- Global Configuration ---
-WIDTH = 1200
-HEIGHT = 800
+# --- Configuration ---
+WIDTH, HEIGHT = 1200, 800
 RIVER_WIDTH = 300
+HORIZON_Y = -50  # Reduced land/river height (Land starts lower now)
 
 screen = turtle.Screen()
+root = screen._root
+root.wm_attributes("-topmost", 1)
+
 screen.setup(WIDTH, HEIGHT)
 screen.colormode(255)
 screen.tracer(0)
 
-# State Management
-state = {
-    "is_day": True,
-    "game_started": False
-}
+state = {"is_day": True, "game_started": False}
 
-# Turtles
 bg_t = turtle.Turtle()
-bg_t.hideturtle()
 ui_t = turtle.Turtle()
-ui_t.hideturtle()
+for t in [bg_t, ui_t]: t.hideturtle()
+
+
+def draw_pixel_circle(t, xc, yc, r, fill_color):
+    """Implementation of Midpoint Circle Algorithm for smooth rendering."""
+    t.penup()
+    t.color(fill_color)
+    # To fill a midpoint circle in Turtle, we draw horizontal lines between points
+    x = 0
+    y = r
+    d = 1 - r
+
+    def draw_lines(xc, yc, x, y):
+        # Draws horizontal spans to fill the circle
+        t.goto(xc - x, yc + y);
+        t.pendown();
+        t.goto(xc + x, yc + y);
+        t.penup()
+        t.goto(xc - x, yc - y);
+        t.pendown();
+        t.goto(xc + x, yc - y);
+        t.penup()
+        t.goto(xc - y, yc + x);
+        t.pendown();
+        t.goto(xc + y, yc + x);
+        t.penup()
+        t.goto(xc - y, yc - x);
+        t.pendown();
+        t.goto(xc + y, yc - x);
+        t.penup()
+
+    while x <= y:
+        draw_lines(xc, yc, x, y)
+        if d < 0:
+            d = d + 2 * x + 3
+        else:
+            d = d + 2 * (x - y) + 5
+            y -= 1
+        x += 1
 
 
 def draw_sky():
-    """Draws the purple-to-pink gradient sky."""
     top_y = HEIGHT // 2
-    bottom_y = 100  # Sky ends here
-    steps = top_y - bottom_y
-
-    # Colors from image_5d0d37.png
-    day_start = (140, 30, 140)  # Purple
-    day_end = (255, 60, 120)  # Pink
-    night_start = (20, 20, 60)  # Deep Blue
-    night_end = (60, 20, 100)  # Dark Purple
-
-    start = day_start if state["is_day"] else night_start
-    end = day_end if state["is_day"] else night_end
+    steps = top_y - HORIZON_Y
+    # Purple to Pink Gradient
+    start = (140, 30, 140) if state["is_day"] else (20, 20, 60)
+    end = (255, 60, 120) if state["is_day"] else (60, 20, 100)
 
     for i in range(steps):
         ratio = i / steps
         r = int(start[0] * (1 - ratio) + end[0] * ratio)
         g = int(start[1] * (1 - ratio) + end[1] * ratio)
         b = int(start[2] * (1 - ratio) + end[2] * ratio)
-
         bg_t.penup()
         bg_t.goto(-WIDTH // 2, top_y - i)
         bg_t.color(r, g, b)
@@ -51,118 +77,80 @@ def draw_sky():
         bg_t.forward(WIDTH)
 
 
-def draw_land_gradient(x_start, width):
-    """Draws the brown-to-green gradient land from image_51c2f4.png."""
-    top_y = 100
-    bottom_y = -HEIGHT // 2
-    steps = abs(top_y - bottom_y)
-
-    # Brown to Green
-    start_col = (105, 85, 40)
-    end_col = (45, 95, 45)
-
-    for i in range(steps):
-        ratio = i / steps
-        r = int(start_col[0] * (1 - ratio) + end_col[0] * ratio)
-        g = int(start_col[1] * (1 - ratio) + end_col[1] * ratio)
-        b = int(start_col[2] * (1 - ratio) + end_col[2] * ratio)
-
-        bg_t.penup()
-        bg_t.goto(x_start, top_y - i)
-        bg_t.color(r, g, b)
-        bg_t.pendown()
-        bg_t.forward(width)
-
-
-def draw_river():
+def draw_land_and_river():
+    # 1. River (Middle)
     bg_t.penup()
-    bg_t.goto(-RIVER_WIDTH // 2, 100)
+    bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y)
     bg_t.color(70, 130, 180)
     bg_t.begin_fill()
     for _ in range(2):
-        bg_t.forward(RIVER_WIDTH)
+        bg_t.forward(RIVER_WIDTH);
         bg_t.right(90)
-        bg_t.forward(HEIGHT)
+        bg_t.forward(HEIGHT // 2 + abs(HORIZON_Y));
         bg_t.right(90)
     bg_t.end_fill()
 
-
-def draw_sun_moon():
-    ui_t.penup()
-    ui_t.goto(450, 250)
-    if state["is_day"]:
-        ui_t.color("yellow")
-        ui_t.begin_fill()
-        ui_t.circle(50)
-        ui_t.end_fill()
-    else:
-        # Crescent Moon
-        ui_t.color("white")
-        ui_t.begin_fill()
-        ui_t.circle(50)
-        ui_t.end_fill()
-        ui_t.goto(475, 265)
-        # Match sky background color for cutout
-        ui_t.color(40, 20, 80)
-        ui_t.begin_fill()
-        ui_t.circle(50)
-        ui_t.end_fill()
+    # 2. Gradient Land
+    for x_start in [-WIDTH // 2, RIVER_WIDTH // 2]:
+        land_w = (WIDTH // 2) - (RIVER_WIDTH // 2)
+        steps = abs(HORIZON_Y - (-HEIGHT // 2))
+        for i in range(steps):
+            ratio = i / steps
+            # Brown to Green
+            r = int(105 * (1 - ratio) + 45 * ratio)
+            g = int(85 * (1 - ratio) + 95 * ratio)
+            b = int(40 * (1 - ratio) + 45 * ratio)
+            bg_t.penup()
+            bg_t.goto(x_start, HORIZON_Y - i)
+            bg_t.color(r, g, b)
+            bg_t.pendown()
+            bg_t.forward(land_w)
 
 
 def draw_play_button():
-    # Button Capsule
+    bx, by = 0, 150  # Centered button position
     ui_t.penup()
-    ui_t.goto(-100, 300)
-    ui_t.color("black", (255, 200, 80))  # Gold fill
-    ui_t.pensize(5)
+    ui_t.goto(bx - 100, by + 100)
+    ui_t.color("black", (255, 200, 80))
+    ui_t.pensize(4)
     ui_t.begin_fill()
     for _ in range(2):
-        ui_t.forward(200)
+        ui_t.forward(200);
         ui_t.circle(40, 180)
     ui_t.end_fill()
-    ui_t.pendown()
-    for _ in range(2):
-        ui_t.forward(200)
-        ui_t.circle(40, 180)
-
-    # Text
-    ui_t.penup()
-    ui_t.goto(0, 295)
-    ui_t.color("black")
-    ui_t.write("PLAY", align="center", font=("Comic Sans MS", 40, "bold"))
+    # Corrected text position relative to button
+    ui_t.goto(bx + 5, by + 120)
+    ui_t.write("PLAY", align="center", font=("Arial", 35, "bold"))
 
 
-def render_scene():
+def render():
     bg_t.clear()
     ui_t.clear()
-
     draw_sky()
-    draw_river()
-    # Left Land: from far left to river start
-    draw_land_gradient(-WIDTH // 2, (WIDTH // 2) - (RIVER_WIDTH // 2))
-    # Right Land: from river end to far right
-    draw_land_gradient(RIVER_WIDTH // 2, (WIDTH // 2) - (RIVER_WIDTH // 2))
+    draw_land_and_river()
 
-    draw_sun_moon()
+    # Celestial Body (Midpoint Circle)
+    if state["is_day"]:
+        draw_pixel_circle(ui_t, 460, 280, 65, (255, 255, 0))
+    else:
+        draw_pixel_circle(ui_t, 460, 280, 65, (240, 240, 240))
+        # Moon Cutout (match night sky color)
+        draw_pixel_circle(ui_t, 485, 295, 65, (40, 20, 80))
+
     if not state["game_started"]:
         draw_play_button()
-
     screen.update()
 
 
 def handle_click(x, y):
-    # Click Sun/Moon area
-    if x > 400 and y > 200:
+    if x > 380 and y > 180:  # Sun/Moon area
         state["is_day"] = not state["is_day"]
-        render_scene()
-
-    # Click PLAY button
-    elif -140 < x < 140 and 260 < y < 380:
+        render()
+    elif -140 < x < 140 and 130 < y < 250:  # PLAY button area
         state["game_started"] = True
-        render_scene()
+        render()
 
 
-# Initialization
-render_scene()
+render()
 screen.onclick(handle_click)
-turtle.done()
+screen.mainloop()
