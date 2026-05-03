@@ -8,8 +8,11 @@ RIVER_WIDTH = 500
 HORIZON_Y_RIVER = -120
 HORIZON_Y_LAND = -120
 
+# --- Position Constants ---
 LEFT_BANK_X = -150
 RIGHT_BANK_X = 150
+CHAR_START_X = -280
+CHAR_Y = -30
 
 screen = turtle.Screen()
 root = screen._root
@@ -19,6 +22,10 @@ screen.setup(WIDTH, HEIGHT)
 screen.colormode(255)
 screen.tracer(0)
 
+# ----- Characters ----
+screen.addshape("missionary.gif")
+screen.addshape("cannibal.gif")
+
 state = {
     "is_day": True,
     "game_started": False,
@@ -26,7 +33,17 @@ state = {
     "boat_x": LEFT_BANK_X,
     "target_x": LEFT_BANK_X,
     "boat_speed": 10,
-    "birds_data": []
+    "birds_data": [],
+    "missionaries": [
+        {"x": CHAR_START_X- 10, "y": CHAR_Y - 65, "on_boat": False},
+        {"x": CHAR_START_X - 60, "y": CHAR_Y - 65, "on_boat": False},
+        {"x": CHAR_START_X - 110, "y": CHAR_Y - 65, "on_boat": False},
+    ],
+    "cannibals": [
+        {"x": CHAR_START_X - 160, "y": CHAR_Y - 65, "on_boat": False},
+        {"x": CHAR_START_X - 210, "y": CHAR_Y - 65, "on_boat": False},
+        {"x": CHAR_START_X - 260, "y": CHAR_Y - 65, "on_boat": False},
+    ],
 }
 current_stars = []
 
@@ -34,9 +51,11 @@ bg_t = turtle.Turtle()
 bird_t = turtle.Turtle()
 boat_t = turtle.Turtle()
 ui_t = turtle.Turtle()
+char_t = turtle.Turtle()
 test_t = turtle.Turtle()
 
-for t in [bg_t, ui_t, bird_t, boat_t, test_t]: t.hideturtle()
+for t in [bg_t, ui_t, bird_t, boat_t, char_t, test_t]: t.hideturtle()
+
 
 def draw_pixel_circle(t, xc, yc, r, fill_color):
     t.penup()
@@ -319,6 +338,96 @@ def draw_boat(t, x, y, scale=1.5):
     t.penup()
 
 
+def draw_missionary(t, x, y, size=1.0):
+    t.penup()
+    t.goto(x, y)
+    t.setheading(0)
+    if state["is_day"]:
+        t.color("blue")
+    else:
+        t.color((255, 255, 245))
+    t.pensize(3 * size)
+
+    # Legs
+    t.pendown()
+    t.goto(x - (10 * size), y - (20 * size))  # Left leg
+    t.penup()
+    t.goto(x, y)
+    t.pendown()
+    t.goto(x + (10 * size), y - (20 * size))  # Right leg
+
+    # Body
+    t.penup()
+    t.goto(x, y)
+    t.pendown()
+    t.goto(x, y + (30 * size))
+
+    # Arms
+    t.penup()
+    t.goto(x - (15 * size), y + (20 * size))
+    t.pendown()
+    t.goto(x + (15 * size), y + (20 * size))
+
+    # Head
+    t.penup()
+    t.goto(x, y + (30 * size))
+    t.setheading(0)
+    t.pendown()
+    t.circle(10 * size)
+    t.penup()
+
+
+def draw_cannibal(t, x, y, size=1.0):
+    t.penup()
+    t.goto(x, y)
+    t.setheading(0)
+    t.color("#B22222")  # A nice deep red like your image
+    t.pensize(3 * size)
+
+    # 1. Legs
+    t.pendown()
+    t.goto(x - (10 * size), y - (20 * size))
+    t.penup()
+    t.goto(x, y)
+    t.pendown()
+    t.goto(x + (10 * size), y - (20 * size))
+
+    # 2. Body
+    t.penup()
+    t.goto(x, y)
+    t.pendown()
+    t.goto(x, y + (30 * size))
+
+    # 3. Arms
+    t.penup()
+    t.goto(x - (15 * size), y + (20 * size))
+    t.pendown()
+    t.goto(x + (15 * size), y + (20 * size))
+
+    # 4. Head
+    t.penup()
+    t.goto(x, y + (30 * size))
+    t.setheading(0)
+    t.pendown()
+    t.circle(10 * size)
+
+    # 5. THE HORNS (Added logic)
+    # Left Horn
+    t.penup()
+    t.goto(x - (7 * size), y + (48 * size))  # Start on left top of head
+    t.setheading(110)
+    t.pendown()
+    t.circle(-(15 * size), 60)  # Curved arc for the horn
+
+    # Right Horn
+    t.penup()
+    t.goto(x + (7 * size), y + (48 * size))  # Start on right top of head
+    t.setheading(70)
+    t.pendown()
+    t.circle((15 * size), 60)
+
+    t.penup()
+
 def render():
     # 1. Clear everything at the start of the frame
     bg_t.clear()
@@ -342,6 +451,14 @@ def render():
     else:
         draw_pixel_circle(ui_t, 460, 280, 65, (240, 240, 240))
         draw_pixel_circle(ui_t, 485, 295, 65, (40, 20, 80))
+
+    # Draw Missionaries from state
+    for m in state["missionaries"]:
+        draw_missionary(char_t, m["x"], m["y"], size=1.2)
+
+    # Draw Cannibals from state
+    for c in state["cannibals"]:
+        draw_cannibal(char_t, c["x"], c["y"], size=1.2)
 
     # 5. Boat Physics (Movement Logic)
     if state["game_started"]:
