@@ -1,9 +1,10 @@
 import turtle
+import random
 
 # --- Configuration ---
 WIDTH, HEIGHT = 1200, 800
-RIVER_WIDTH = 300
-HORIZON_Y = -50  # Reduced land/river height (Land starts lower now)
+RIVER_WIDTH = 500
+HORIZON_Y = -50
 
 screen = turtle.Screen()
 root = screen._root
@@ -76,30 +77,69 @@ def draw_sky():
         bg_t.pendown()
         bg_t.forward(WIDTH)
 
+current_stars = []
+def draw_single_star(t, x, y, size):
+    """Draws a star shape using a 144-degree angle."""
+    t.penup()
+    t.goto(x, y)
+    t.setheading(0)
+    t.color("white")
+    t.pendown()
+    for _ in range(5):
+        t.forward(size)
+        t.right(144)
+
+    t.penup()
+
+def refresh_stars():
+    """Generates a fresh set of stars with varied sizes."""
+    global current_stars
+    current_stars = []
+    star_cnt = random.randint(10, 20)
+    for _ in range(star_cnt):
+        x = random.randint(-580, 580)
+        y = random.randint(0, 380)
+        # Increased size range to make the difference visible
+        size = random.randint(2, 20)
+        current_stars.append((x, y, size))
+
+def draw_stars():
+    """Draws the stars using the current_stars list."""
+    if not state["is_day"]:
+        for x, y, size in current_stars:
+            # Avoid drawing on the moon area
+            if not (x > 380 and y > 180):
+                draw_single_star(ui_t, x, y, size)
+
 
 def draw_land_and_river():
     # 1. River (Middle)
+    # The river starts at -250 and ends at +250
     bg_t.penup()
     bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y)
     bg_t.color(70, 130, 180)
     bg_t.begin_fill()
     for _ in range(2):
-        bg_t.forward(RIVER_WIDTH);
+        bg_t.forward(RIVER_WIDTH)
         bg_t.right(90)
-        bg_t.forward(HEIGHT // 2 + abs(HORIZON_Y));
+        bg_t.forward(HEIGHT // 2 + abs(HORIZON_Y))
         bg_t.right(90)
     bg_t.end_fill()
 
     # 2. Gradient Land
+    # Left Land: starts at -600, width is 350 (reduced from 450)
+    # Right Land: starts at 250, width is 350 (reduced from 450)
     for x_start in [-WIDTH // 2, RIVER_WIDTH // 2]:
-        land_w = (WIDTH // 2) - (RIVER_WIDTH // 2)
+        land_w = (WIDTH // 2) - (RIVER_WIDTH // 2)  # This calculates to 350
         steps = abs(HORIZON_Y - (-HEIGHT // 2))
+
         for i in range(steps):
             ratio = i / steps
-            # Brown to Green
+            # Smooth Brown to Green transition
             r = int(105 * (1 - ratio) + 45 * ratio)
             g = int(85 * (1 - ratio) + 95 * ratio)
             b = int(40 * (1 - ratio) + 45 * ratio)
+
             bg_t.penup()
             bg_t.goto(x_start, HORIZON_Y - i)
             bg_t.color(r, g, b)
@@ -109,9 +149,19 @@ def draw_land_and_river():
 
 def draw_play_button():
     bx, by = 0, 150  # Centered button position
+
+    if state["is_day"]:
+        button_fill = (255, 200, 80)  # Golden Sun
+        button_edge = "black"
+        text_color = "black"
+    else:
+        button_fill = (100, 100, 140)  # Muted Night Blue/Silver
+        button_edge = (200, 200, 255)  # Light Blue Glow
+        text_color = "white"
+
     ui_t.penup()
     ui_t.goto(bx - 100, by + 100)
-    ui_t.color("black", (255, 200, 80))
+    ui_t.color(button_edge, button_fill)
     ui_t.pensize(4)
     ui_t.begin_fill()
     for _ in range(2):
@@ -120,6 +170,7 @@ def draw_play_button():
     ui_t.end_fill()
     # Corrected text position relative to button
     ui_t.goto(bx + 5, by + 120)
+    ui_t.color(text_color)
     ui_t.write("PLAY", align="center", font=("Arial", 35, "bold"))
 
 
@@ -128,6 +179,8 @@ def render():
     ui_t.clear()
     draw_sky()
     draw_land_and_river()
+    draw_stars()
+    # draw_birds()
 
     # Celestial Body (Midpoint Circle)
     if state["is_day"]:
@@ -145,6 +198,9 @@ def render():
 def handle_click(x, y):
     if x > 380 and y > 180:  # Sun/Moon area
         state["is_day"] = not state["is_day"]
+        if not state["is_day"]:
+            refresh_stars()
+
         render()
     elif -140 < x < 140 and 130 < y < 250:  # PLAY button area
         state["game_started"] = True
