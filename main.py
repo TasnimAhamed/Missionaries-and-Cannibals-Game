@@ -4,7 +4,8 @@ import random
 # --- Configuration ---
 WIDTH, HEIGHT = 1200, 800
 RIVER_WIDTH = 500
-HORIZON_Y = -50
+HORIZON_Y_RIVER = -50
+HORIZON_Y_LAND = -50
 
 screen = turtle.Screen()
 root = screen._root
@@ -61,7 +62,7 @@ def draw_pixel_circle(t, xc, yc, r, fill_color):
 
 def draw_sky():
     top_y = HEIGHT // 2
-    steps = top_y - HORIZON_Y
+    steps = top_y - HORIZON_Y_LAND
     # Purple to Pink Gradient
     start = (140, 30, 140) if state["is_day"] else (20, 20, 60)
     end = (255, 60, 120) if state["is_day"] else (60, 20, 100)
@@ -112,26 +113,72 @@ def draw_stars():
                 draw_single_star(ui_t, x, y, size)
 
 
+def draw_river():
+    top_y = HORIZON_Y_RIVER
+    bottom_y = -HEIGHT // 2
+    steps = abs(top_y - bottom_y)
+
+    # 1. First, draw the "Pointed Waves" (Shoreline) from image_4e7d9b.png
+    bg_t.penup()
+    bg_t.goto(-RIVER_WIDTH // 2, top_y)
+    bg_t.color(255, 50, 100)  # Vibrant Pink
+    bg_t.setheading(0)
+    bg_t.pensize(2)
+
+    num_waves = 10
+    wave_width = RIVER_WIDTH / num_waves
+
+    # Optional: Fill the waves with the starting river color
+    bg_t.begin_fill()
+    bg_t.color(255, 50, 100)
+    # for _ in range(num_waves):
+    #     bg_t.circle(wave_width / 1.5, -110)  # Pointed arc logic
+    #     bg_t.setheading(0)
+    # bg_t.goto(RIVER_WIDTH // 2, -HEIGHT // 2)
+    # bg_t.goto(-RIVER_WIDTH // 2, -HEIGHT // 2)
+    # bg_t.end_fill()
+
+    # 2. Draw the Smooth Gradient with "Opacity" Blending
+    # Background color at horizon (Pinkish)
+    bg_color = (121, 181, 225)
+
+    # Target River Colors (from image_4e8cfd.png)
+    top_river = (115, 199, 225)  # Lavender
+    bottom_river = (62, 179, 215)  # Cornflower Blue
+
+    opacity = 0.6  # Adjust this for more/less transparency
+
+    for i in range(steps):
+        ratio = i / steps
+
+        # Interpolate the raw river color
+        target_r = top_river[0] + (bottom_river[0] - top_river[0]) * ratio
+        target_g = top_river[1] + (bottom_river[1] - top_river[1]) * ratio
+        target_b = top_river[2] + (bottom_river[2] - top_river[2]) * ratio
+
+        # Blend with Background to simulate transparency
+        r = int((bg_color[0] * (1 - opacity)) + (target_r * opacity))
+        g = int((bg_color[1] * (1 - opacity)) + (target_g * opacity))
+        b = int((bg_color[2] * (1 - opacity)) + (target_b * opacity))
+
+        bg_t.penup()
+        bg_t.goto(-RIVER_WIDTH // 2, top_y - i)
+        bg_t.color(r, g, b)
+        bg_t.pendown()
+        bg_t.forward(RIVER_WIDTH)
+
 def draw_land_and_river():
     # 1. River (Middle)
     # The river starts at -250 and ends at +250
     bg_t.penup()
-    bg_t.goto(-RIVER_WIDTH // 2, HORIZON_Y)
-    bg_t.color(70, 130, 180)
-    bg_t.begin_fill()
-    for _ in range(2):
-        bg_t.forward(RIVER_WIDTH)
-        bg_t.right(90)
-        bg_t.forward(HEIGHT // 2 + abs(HORIZON_Y))
-        bg_t.right(90)
-    bg_t.end_fill()
+    draw_river()
 
     # 2. Gradient Land
     # Left Land: starts at -600, width is 350 (reduced from 450)
     # Right Land: starts at 250, width is 350 (reduced from 450)
     for x_start in [-WIDTH // 2, RIVER_WIDTH // 2]:
         land_w = (WIDTH // 2) - (RIVER_WIDTH // 2)  # This calculates to 350
-        steps = abs(HORIZON_Y - (-HEIGHT // 2))
+        steps = abs(HORIZON_Y_LAND - (-HEIGHT // 2))
 
         for i in range(steps):
             ratio = i / steps
@@ -141,7 +188,7 @@ def draw_land_and_river():
             b = int(40 * (1 - ratio) + 45 * ratio)
 
             bg_t.penup()
-            bg_t.goto(x_start, HORIZON_Y - i)
+            bg_t.goto(x_start, HORIZON_Y_LAND - i)
             bg_t.color(r, g, b)
             bg_t.pendown()
             bg_t.forward(land_w)
@@ -196,13 +243,13 @@ def render():
 
 
 def handle_click(x, y):
-    if x > 380 and y > 180:  # Sun/Moon area
+    if x > 400 and y > 180:
         state["is_day"] = not state["is_day"]
         if not state["is_day"]:
             refresh_stars()
 
         render()
-    elif -140 < x < 140 and 130 < y < 250:  # PLAY button area
+    elif -100 < x < 100 and 240 < y < 330:  # PLAY button area
         state["game_started"] = True
         render()
 
