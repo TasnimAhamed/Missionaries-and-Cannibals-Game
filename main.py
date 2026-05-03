@@ -18,9 +18,12 @@ screen.tracer(0)
 state = {"is_day": True, "game_started": False}
 current_stars = []
 
-bg_t = turtle.Turtle()
+bg_t = turtle.Turtle()     # sky + river
+bird_t = turtle.Turtle()   # birds only
+boat_t = turtle.Turtle()
 ui_t = turtle.Turtle()
-for t in [bg_t, ui_t]: t.hideturtle()
+
+for t in [bg_t, ui_t, bird_t, boat_t]: t.hideturtle()
 
 
 def draw_pixel_circle(t, xc, yc, r, fill_color):
@@ -56,6 +59,7 @@ def draw_pixel_circle(t, xc, yc, r, fill_color):
             d = d + 2 * (x - y) + 5
             y -= 1
         x += 1
+
 
 
 def draw_sky():
@@ -253,13 +257,54 @@ def draw_play_button():
     ui_t.write("PLAY", align="center", font=("Arial", 35, "bold"))
 
 
+def draw_bird(t, x, y, size, heading_first, heading_second):
+    """
+    Draws a single bird with a specific heading and size.
+    """
+    t.penup()
+    t.goto(x, y)
+    t.color("black")
+    t.pensize(2)
+    t.setheading(heading_first)  # Point up-right for the first wing
+    t.pendown()
+
+    # Left wing
+    t.circle(size, 90)
+
+    # Reset and tilt for the right wing
+    t.setheading(heading_second)
+
+    # Right wing
+    t.circle(size, 90)
+    t.penup()
+
+
+def create_random_flock(num_birds):
+    for _ in range(num_birds):
+        # 1. Randomize Coordinates (Adjust ranges to fit your sky)
+        rand_x = random.randint(-800, 600)
+        rand_y = random.randint(150, 400)
+
+        # 2. Randomize Size (Smaller = further away)
+        rand_size = random.randint(10, 15)
+
+        # 3. Randomize Heading (90 to 130 as requested)
+        rand_heading_first = random.randint(90, 130)
+        rand_heading_second = random.randint(90, 130)
+
+        draw_bird(t, rand_x, rand_y, rand_size, rand_heading_first, rand_heading_second)
+
+
+
 def render():
     bg_t.clear()
     ui_t.clear()
     draw_sky()
     draw_land_and_river()
     draw_stars()
-    # draw_birds()
+
+    if state["is_day"]:
+        create_random_flock(10)
 
     # Celestial Body (Midpoint Circle)
     if state["is_day"]:
