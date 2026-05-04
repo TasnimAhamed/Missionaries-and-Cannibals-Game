@@ -346,7 +346,7 @@ def initialize_birds(num_birds):
         }
         state["birds_data"].append(bird)
 
-# 4. Call it once
+# 4. Initialize birds
 initialize_birds(10)
 
 def draw_boat(t, x, y, scale=1.5):
@@ -385,11 +385,11 @@ def draw_boat(t, x, y, scale=1.5):
     t.pendown()
     t.forward(100 * scale)
 
-    # --- 3. Large 3D Sail
+    # --- 3. Large Sail
     t.penup()
     t.goto(x, y + 130 * scale)
 
-    # Sail Colors: Using an off-white/cream for a more realistic look
+    # Sail Colors: Using an off-white/cream
     t.color(sail_color)
     t.begin_fill()
     t.setheading(-140)
@@ -444,7 +444,7 @@ def draw_cannibal(t, x, y, size=1.0):
     t.penup()
     t.goto(x, y)
     t.setheading(0)
-    t.color("#B22222")  # A nice deep red like your image
+    t.color("#B22222")
     t.pensize(3 * size)
 
     # 1. Legs
@@ -474,17 +474,17 @@ def draw_cannibal(t, x, y, size=1.0):
     t.pendown()
     t.circle(15 * size)
 
-    # 5. THE HORNS (Added logic)
+    # 5. THE HORNS
     # Left Horn
     t.penup()
-    t.goto(x - (12 * size), y + (54 * size))  # Start on left top of head
+    t.goto(x - (12 * size), y + (54 * size))
     t.setheading(110)
     t.pendown()
-    t.circle(-(15 * size), 60)  # Curved arc for the horn
+    t.circle(-(15 * size), 60)
 
     # Right Horn
     t.penup()
-    t.goto(x + (12 * size), y + (54 * size))  # Start on right top of head
+    t.goto(x + (12 * size), y + (54 * size))
     t.setheading(70)
     t.pendown()
     t.circle((15 * size), 60)
@@ -494,23 +494,18 @@ def draw_cannibal(t, x, y, size=1.0):
 
 def toggle_passenger(char_obj):
     # --- NEW GUARD ---
-    # If the game hasn't started, exit the function immediately
+    # If the game hasn't started, exit the function
     if not state["game_started"]:
         show_message("Click PLAY to start!")
         return
 
-        # Determine boat's current side
+    # Determine boat's current side
     boat_side = "left" if state["boat_x"] <= 0 else "right"
 
     # CASE A: If character is already on boat -> Move back to current bank
     if char_obj in state["boat_passengers"]:
         state["boat_passengers"].remove(char_obj)
         char_obj["side"] = boat_side
-
-        # result = check_game_over()
-        # if result:
-        #     show_message(result)
-        #     state["game_started"] = False
 
         if boat_side == "left":
             char_obj["x"] = char_obj["home_x"]
@@ -525,11 +520,6 @@ def toggle_passenger(char_obj):
         if len(state["boat_passengers"]) < 2 and char_obj["side"] == boat_side:
             state["boat_passengers"].append(char_obj)
             char_obj["side"] = "boat"
-
-            # result = check_game_over()
-            # if result:
-            #     show_message(result)
-            #     state["game_started"] = False
 
         elif len(state["boat_passengers"]) >= 2:
             show_message("Boat is full!")
@@ -546,12 +536,12 @@ def check_game_over():
     m_right = sum(1 for m in state["missionaries"] if m["side"] == "right")
     c_right = sum(1 for c in state["cannibals"] if c["side"] == "right")
 
-    # Check Left Bank: Missionaries die if C > M (and M is not 0)
+    # Check Left Bank: Missionaries die if C > M
     if m_left > 0 and c_left > m_left:
         state["game_over"] = True
         return "Left Bank: The Missionaries were eaten!"
 
-    # Check Right Bank: Missionaries die if C > M (and M is not 0)
+    # Check Right Bank: Missionaries die if C > M
     if m_right > 0 and c_right > m_right:
         state["game_over"] = True
         return "Right Bank: The Missionaries were eaten!"
@@ -632,13 +622,13 @@ def render():
     # 3. Draw Boat (at current position)
     draw_boat(boat_t, state["boat_x"], HORIZON_Y_RIVER - 35, scale=1.5)
 
-    # 4. Draw Birds from the FIXED list (No more flickering!)
+    # 4. Draw Birds
     if state["is_day"]:
         for b in state["birds_data"]:
             # Pass 6 arguments: turtle, x, y, size, h1, h2
             draw_bird(bird_t, b["x"], b["y"], b["size"], b["h1"], b["h2"])
 
-    # 5. Sun / Moon logic
+    # 5. Sun / Moon
     if state["is_day"]:
         draw_pixel_circle(ui_t, 460, 280, 65, (255, 255, 0))
     else:
@@ -657,7 +647,7 @@ def render():
     for c in state["cannibals"]:
         draw_cannibal(char_t, c["x"], c["y"], size=1.0)
 
-    # 6. Boat Physics (Movement Logic)
+    # 6. Boat Movement
     if state["game_started"]:
         # Move Right
         if state["boat_x"] < state["target_x"]:
@@ -681,7 +671,7 @@ def render():
 
     # --- DRAW UI MESSAGE ---
     if state["ui_message"] != "":
-        msg_t.clear()  # Clear previous frame's text
+        msg_t.clear()
         msg_t.goto(-580, 350)
         msg_t.write(state["ui_message"], font=("Arial", 20, "bold"))
     else:
@@ -714,7 +704,7 @@ def handle_click(x, y):
         for m in state["missionaries"]:
             if abs(x - m["x"]) < 30 and abs(y - m["y"]) < 40:
                 toggle_passenger(m)
-                return  # Exit after one click
+                return
 
         # Check Cannibals
         for c in state["cannibals"]:
@@ -734,13 +724,7 @@ def handle_click(x, y):
                     state["game_started"] = False
                     state["game_over"] = True
                 else:
-                    # Move the boat
                     state["target_x"] = RIGHT_BANK_X if state["target_x"] == LEFT_BANK_X else LEFT_BANK_X
-
-                # if state["target_x"] == LEFT_BANK_X:
-                #     state["target_x"] = RIGHT_BANK_X
-                # else:
-                #     state["target_x"] = LEFT_BANK_X
             else:
                 show_message("Boat needs 1 or 2 people to move!")
     else:
