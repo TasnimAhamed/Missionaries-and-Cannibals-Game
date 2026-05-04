@@ -46,7 +46,7 @@ Your goal is to safely transport all 6 characters from the left bank to the righ
 
 | Game Over | Victory |
 |:---:|:---:|
-| <img src="images/game_over.png" alt="Game Over" width="400"/> | <img src="images/victory.png" alt="Victory" width="400"/> |
+| <img src="images/game_over.png" alt="Game Over" width="400"/> | <img src="images/game_victory.png" alt="Victory" width="400"/> |
 
 ## ⚙️ Installation and Setup
 
