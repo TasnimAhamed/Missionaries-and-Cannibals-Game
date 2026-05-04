@@ -109,16 +109,20 @@ for t in [bg_t, ui_t, bird_t, boat_t, char_t, msg_t, test_t]: t.hideturtle()
 msg_t.hideturtle()
 msg_t.penup()
 msg_t.color("white")
+
+# Show Message
 def show_message(text):
     state["ui_message"] = text
     # The timer still works exactly the same!
     screen.ontimer(hide_message, 3000)
 
+# Hide Message
 def hide_message():
     state["ui_message"] = ""
     msg_t.clear() # Clear it once when the timer ends
 
 
+# Draw Circle using Mid-Point Circle Algorithm
 def draw_pixel_circle(t, xc, yc, r, fill_color):
     t.penup()
     t.color(fill_color)
@@ -153,7 +157,7 @@ def draw_pixel_circle(t, xc, yc, r, fill_color):
             y -= 1
         x += 1
 
-
+# Draw Sky
 def draw_sky():
     top_y = HEIGHT // 2
     steps = top_y - HORIZON_Y_LAND
@@ -173,6 +177,7 @@ def draw_sky():
         bg_t.forward(WIDTH)
 
 
+# Draw Single star
 def draw_single_star(t, x, y, size):
     t.penup()
     t.goto(x, y)
@@ -186,6 +191,7 @@ def draw_single_star(t, x, y, size):
     t.penup()
 
 
+# Refresh Start when Night is changed
 def refresh_stars():
     global current_stars
     current_stars = []
@@ -197,6 +203,7 @@ def refresh_stars():
         current_stars.append((x, y, size))
 
 
+# Draw Stars
 def draw_stars():
     if not state["is_day"]:
         for x, y, size in current_stars:
@@ -204,6 +211,7 @@ def draw_stars():
                 draw_single_star(ui_t, x, y, size)
 
 
+# Draw Wave Curves using Mid-Point Circle Drawing Algorithm
 def draw_midpoint_wave_segment(t, xc, yc, r):
     x, y = 0, r
     d = 1 - r
@@ -224,6 +232,7 @@ def draw_midpoint_wave_segment(t, xc, yc, r):
         t.goto(p)
 
 
+# Draw Blue River
 def draw_river():
 
     steps = abs(HORIZON_Y_RIVER - (-HEIGHT // 2))
@@ -269,6 +278,7 @@ def draw_river():
     bg_t.setheading(0)
 
 
+# Draw Land and River
 def draw_land_and_river():
 
     bg_t.penup()
@@ -291,6 +301,7 @@ def draw_land_and_river():
             bg_t.forward(land_w)
 
 
+# Draw Play Button
 def draw_play_button():
     bx, by = 0, 150
 
@@ -319,6 +330,7 @@ def draw_play_button():
     ui_t.write(button_text, align="center", font=("Arial", 35, "bold"))
 
 
+# Draw Birds
 def draw_bird(t, x, y, size, heading_first, heading_second):
     t.penup()
     t.goto(x, y)
@@ -334,6 +346,7 @@ def draw_bird(t, x, y, size, heading_first, heading_second):
     t.penup()
 
 
+# Initialize Birds Flock
 def initialize_birds(num_birds):
     state["birds_data"] = []
     for _ in range(num_birds):
@@ -346,9 +359,10 @@ def initialize_birds(num_birds):
         }
         state["birds_data"].append(bird)
 
-# 4. Initialize birds
+# Initialize birds
 initialize_birds(10)
 
+# Draw Boat
 def draw_boat(t, x, y, scale=1.5):
 
     t.penup()
@@ -400,7 +414,7 @@ def draw_boat(t, x, y, scale=1.5):
     t.end_fill()
     t.penup()
 
-
+# Draw Missionary
 def draw_missionary(t, x, y, size=1.0):
     t.penup()
     t.goto(x, y)
@@ -440,6 +454,7 @@ def draw_missionary(t, x, y, size=1.0):
     t.penup()
 
 
+# Draw Cannibal
 def draw_cannibal(t, x, y, size=1.0):
     t.penup()
     t.goto(x, y)
@@ -491,7 +506,7 @@ def draw_cannibal(t, x, y, size=1.0):
 
     t.penup()
 
-
+# Toggle Passenger
 def toggle_passenger(char_obj):
     # --- NEW GUARD ---
     # If the game hasn't started, exit the function
@@ -526,7 +541,7 @@ def toggle_passenger(char_obj):
         else:
             show_message("Boat is on the other side!")
 
-
+# Check Game Over
 def check_game_over():
     # Count people on the left
     m_left = sum(1 for m in state["missionaries"] if m["side"] == "left")
@@ -549,6 +564,7 @@ def check_game_over():
     return None  # Everyone is safe
 
 
+# Check Win
 def check_win():
     m_right = sum(1 for m in state["missionaries"] if m["side"] == "right")
     c_right = sum(1 for c in state["cannibals"] if c["side"] == "right")
@@ -557,6 +573,7 @@ def check_win():
         return True
     return False
 
+# Check Process Arrival
 def process_arrival():
     # Update side for passengers now that boat has landed
     arrival_side = "left" if state["boat_x"] <= 0 else "right"
@@ -578,7 +595,7 @@ def process_arrival():
         state["game_started"] = False
         state["game_over"] = True
 
-
+# Reset Game
 def reset_game():
     # 1. Reset Game Flags
     state["game_started"] = False
@@ -607,6 +624,7 @@ def reset_game():
     # 5. Clear the message turtle specifically
     msg_t.clear()
 
+# Render Everything in one frame
 def render():
     # 1. Clear everything at the start of the frame
     bg_t.clear()
@@ -681,6 +699,7 @@ def render():
     screen.update()
     screen.ontimer(render, 16) # This keeps the whole game running at 60FPS
 
+# Handle Click Events
 def handle_click(x, y):
     # Day/Night Toggle
     if x > 400 and y > 180:
@@ -732,7 +751,7 @@ def handle_click(x, y):
 
 
 
-render() # Starts the single, unified game loop
+render()
 screen.onclick(handle_click)
 screen.mainloop()
 turtle.done()
