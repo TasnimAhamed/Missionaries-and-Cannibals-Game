@@ -19,8 +19,8 @@ LEFT_GRASS_X = -280   # Further left than the boat
 RIGHT_GRASS_X = 280   # Further right than the boat
 
 # Vertical Rows
-MISSIONARY_Y = -30     # Top row
-CANNIBAL_Y = -30      # Bottom row
+MISSIONARY_Y = -30
+CANNIBAL_Y = -30
 
 screen = turtle.Screen()
 root = screen._root
@@ -44,6 +44,8 @@ state = {
     "birds_data": [],
     "boat_passengers" : [],
     "ui_message": "",
+    "game_over": False,
+    "game_won": False,
     "missionaries": [
         {
             "x": LEFT_GRASS_X - 10,
@@ -110,7 +112,7 @@ msg_t.color("white")
 def show_message(text):
     state["ui_message"] = text
     # The timer still works exactly the same!
-    screen.ontimer(hide_message, 2000)
+    screen.ontimer(hide_message, 3000)
 
 def hide_message():
     state["ui_message"] = ""
@@ -313,7 +315,8 @@ def draw_play_button():
 
     ui_t.goto(bx + 5, by + 120)
     ui_t.color(text_color)
-    ui_t.write("PLAY", align="center", font=("Arial", 35, "bold"))
+    button_text = "RETRY AGAIN" if state.get("game_over", False) else "PLAY"
+    ui_t.write(button_text, align="center", font=("Arial", 35, "bold"))
 
 
 def draw_bird(t, x, y, size, heading_first, heading_second):
@@ -433,7 +436,7 @@ def draw_missionary(t, x, y, size=1.0):
     t.goto(x, y + (30 * size))
     t.setheading(0)
     t.pendown()
-    t.circle(10 * size)
+    t.circle(15 * size)
     t.penup()
 
 
@@ -469,19 +472,19 @@ def draw_cannibal(t, x, y, size=1.0):
     t.goto(x, y + (30 * size))
     t.setheading(0)
     t.pendown()
-    t.circle(10 * size)
+    t.circle(15 * size)
 
     # 5. THE HORNS (Added logic)
     # Left Horn
     t.penup()
-    t.goto(x - (7 * size), y + (48 * size))  # Start on left top of head
+    t.goto(x - (12 * size), y + (54 * size))  # Start on left top of head
     t.setheading(110)
     t.pendown()
     t.circle(-(15 * size), 60)  # Curved arc for the horn
 
     # Right Horn
     t.penup()
-    t.goto(x + (7 * size), y + (48 * size))  # Start on right top of head
+    t.goto(x + (12 * size), y + (54 * size))  # Start on right top of head
     t.setheading(70)
     t.pendown()
     t.circle((15 * size), 60)
@@ -545,10 +548,12 @@ def check_game_over():
 
     # Check Left Bank: Missionaries die if C > M (and M is not 0)
     if m_left > 0 and c_left > m_left:
+        state["game_over"] = True
         return "Left Bank: The Missionaries were eaten!"
 
     # Check Right Bank: Missionaries die if C > M (and M is not 0)
     if m_right > 0 and c_right > m_right:
+        state["game_over"] = True
         return "Right Bank: The Missionaries were eaten!"
 
     return None  # Everyone is safe
@@ -572,6 +577,8 @@ def process_arrival():
     if check_win():
         show_message("VICTORY! All crossed safely!")
         state["game_started"] = False
+        state["game_over"] = False
+        state["game_won"] = True
         return
 
     # 2. Check if Missionaries were eaten
@@ -579,7 +586,36 @@ def process_arrival():
     if result:
         show_message(result)
         state["game_started"] = False
+        state["game_over"] = True
 
+
+def reset_game():
+    # 1. Reset Game Flags
+    state["game_started"] = False
+    state["game_over"] = False
+    state["game_won"] = False
+    state["ui_message"] = ""
+
+    # 2. Reset Boat Position
+    state["boat_x"] = LEFT_BANK_X
+    state["target_x"] = LEFT_BANK_X
+    state["boat_passengers"] = []
+
+    # 3. Reset Missionaries to Left Bank
+    for m in state["missionaries"]:
+        m["x"] = m["home_x"]
+        m["y"] = m["home_y"]
+        m["side"] = "left"
+
+    # 4. Reset Cannibals to Left Bank
+    for c in state["cannibals"]:
+        # Since home_x is negative for the left side, we use it directly
+        c["x"] = c["home_x"]
+        c["y"] = c["home_y"]
+        c["side"] = "left"
+
+    # 5. Clear the message turtle specifically
+    msg_t.clear()
 
 def render():
     # 1. Clear everything at the start of the frame
@@ -663,8 +699,13 @@ def handle_click(x, y):
             refresh_stars()
 
     # Play Button
-    elif -100 < x < 100 and 240 < y < 330:
+    if -100 < x < 100 and 240 < y < 330:
+        if state.get("game_over") or state.get("game_won"):
+            reset_game()
+
+        # Now start the game
         state["game_started"] = True
+        return
 
     # --- 2. Character Clicks ---
     # Only allow character movement if the boat is NOT moving
@@ -691,6 +732,7 @@ def handle_click(x, y):
                 if result:
                     show_message(result)
                     state["game_started"] = False
+                    state["game_over"] = True
                 else:
                     # Move the boat
                     state["target_x"] = RIGHT_BANK_X if state["target_x"] == LEFT_BANK_X else LEFT_BANK_X
@@ -703,6 +745,8 @@ def handle_click(x, y):
                 show_message("Boat needs 1 or 2 people to move!")
     else:
         show_message("Click PLAY to start!")
+
+
 
 render() # Starts the single, unified game loop
 screen.onclick(handle_click)
